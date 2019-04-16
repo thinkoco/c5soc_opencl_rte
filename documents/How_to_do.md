@@ -1,7 +1,9 @@
 # How to do
 ## Get linux kernel
 
-    wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.19.29.tar.xz
+	git clone --depth 20 --branch socfpga-4.9.78-ltsi https://github.com/thinkoco/linux-socfpga.git
+	
+	wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.19.29.tar.xz
 
 ## Update linux kernel
 

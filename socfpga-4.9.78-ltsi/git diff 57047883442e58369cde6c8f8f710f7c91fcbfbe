@@ -1,0 +1,657 @@
+diff --git a/arch/arm/boot/dts/socfpga.dtsi b/arch/arm/boot/dts/socfpga.dtsi
+index 595eb4f1..285285bd 100644
+--- a/arch/arm/boot/dts/socfpga.dtsi
++++ b/arch/arm/boot/dts/socfpga.dtsi
+@@ -96,7 +96,9 @@
+ 		base_fpga_region: base-fpga-region {
+ 			compatible = "fpga-region";
+ 			fpga-mgr = <&fpgamgr0>;
+-
++			fpga-bridges = <&fpga_bridge0>, <&fpga_bridge1>,
++			<&fpga_bridge2>;
++			ranges = <0 0xff200000 0x100000>;
+ 			#address-cells = <0x1>;
+ 			#size-cells = <0x1>;
+ 		};
+@@ -525,20 +527,33 @@
+ 			compatible = "altr,socfpga-lwhps2fpga-bridge";
+ 			reg = <0xff400000 0x100000>;
+ 			resets = <&rst LWHPS2FPGA_RESET>;
++			reset-names = "lwhps2fpga";
+ 			clocks = <&l4_main_clk>;
++			bridge-enable=<1>;
+ 		};
+ 
+ 		fpga_bridge1: fpga_bridge@ff500000 {
+ 			compatible = "altr,socfpga-hps2fpga-bridge";
+ 			reg = <0xff500000 0x10000>;
+ 			resets = <&rst HPS2FPGA_RESET>;
++			reset-names = "hps2fpga";
++			clocks = <&l4_main_clk>;
++			bridge-enable=<1>;
++		};
++
++		fpga_bridge2: fpga-bridge@ff600000 {
++			compatible = "altr,socfpga-fpga2hps-bridge";
++			reg = <0xff600000 0x100000>;
++			resets = <&rst FPGA2HPS_RESET>;
++			reset-names = "fpga2hps";
+ 			clocks = <&l4_main_clk>;
++			bridge-enable=<1>;
+ 		};
+ 
+ 		fpgamgr0: fpgamgr@ff706000 {
+ 			compatible = "altr,socfpga-fpga-mgr";
+ 			reg = <0xff706000 0x1000
+-			       0xffb90000 0x4>;
++			       0xffb90000 0x1000>;
+ 			interrupts = <0 175 4>;
+ 		};
+ 
+diff --git a/arch/arm/boot/dts/socfpga_cyclone5_de10_nano.dts b/arch/arm/boot/dts/socfpga_cyclone5_de10_nano.dts
+new file mode 100644
+index 00000000..aaccaac1
+--- /dev/null
++++ b/arch/arm/boot/dts/socfpga_cyclone5_de10_nano.dts
+@@ -0,0 +1,135 @@
++/*
++ * Copyright Altera Corporation (C) 2015. All rights reserved.
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms and conditions of the GNU General Public License,
++ * version 2, as published by the Free Software Foundation.
++ *
++ * This program is distributed in the hope it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ *
++ * You should have received a copy of the GNU General Public License along with
++ * this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include "socfpga_cyclone5.dtsi"
++
++/ {
++	model = "Terasic DE-0(Atlas)";
++	compatible = "terasic,de0-atlas", "altr,socfpga-cyclone5", "altr,socfpga";
++
++	chosen {
++		bootargs = "earlyprintk";
++		stdout-path = "serial0:115200n8";
++	};
++
++	memory@0 {
++		name = "memory";
++		device_type = "memory";
++		reg = <0x0 0x40000000>; /* 1GB */
++	};
++
++	aliases {
++		ethernet0 = &gmac1;
++	};
++
++	regulator_3_3v: 3-3-v-regulator {
++		compatible = "regulator-fixed";
++		regulator-name = "3.3V";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++	};
++
++	soc {
++		hps_0_bridges: bridge@0xc0000000 {
++			compatible = "altr,bridge-14.1", "simple-bus";
++			reg = <0xc0000000 0x20000000>,
++				<0xff200000 0x00200000>;
++			reg-names = "axi_h2f", "axi_h2f_lw";
++			#address-cells = <2>;
++			#size-cells = <1>;
++			ranges = <0x00000000 0x00000000 0xc0000000 0x00010000>,
++				<0x00000001 0x00031000 0xFF231000 0x00000080>;
++
++			alt_vip_vfr_1: vip2@0x100 {	
++				compatible = "ALTR,vip-frame-reader-13.0", "ALTR,vip-frame-reader-9.1";
++				reg = <0x00000001 0x00031000 0x00000080 >;
++				max-width = < 1024 >;	
++				max-height = < 768 >;	
++				mem-word-width = < 128 >;
++				bits-per-color = < 8 >;				
++				}; //end vip@0x40100 (alt_vip_vfr_0)
++
++		}; //end bridge@0xc0000000 (hps_0_bridges)
++	};
++
++	leds {
++		compatible = "gpio-leds";
++		hps0 {
++			label = "hps_led0";
++			gpios = <&portb 24 0>;
++			linux,default-trigger = "heartbeat";
++		};
++	};
++};
++
++&gmac1 {
++	status = "okay";
++	phy-mode = "rgmii";
++
++	txd0-skew-ps = <0>; /* -420ps */
++	txd1-skew-ps = <0>; /* -420ps */
++	txd2-skew-ps = <0>; /* -420ps */
++	txd3-skew-ps = <0>; /* -420ps */
++	rxd0-skew-ps = <420>; /* 0ps */
++	rxd1-skew-ps = <420>; /* 0ps */
++	rxd2-skew-ps = <420>; /* 0ps */
++	rxd3-skew-ps = <420>; /* 0ps */
++	txen-skew-ps = <0>; /* -420ps */
++	txc-skew-ps = <1860>; /* 960ps */
++	rxdv-skew-ps = <420>; /* 0ps */
++	rxc-skew-ps = <1680>; /* 780ps */
++
++	max-frame-size = <3800>;
++};
++
++&gpio0 {
++	status = "okay";
++};
++
++&gpio1 {
++	status = "okay";
++};
++
++&gpio2 {
++	status = "okay";
++};
++
++&i2c0 {
++	status = "okay";
++	clock-frequency = <100000>;
++
++	adxl345: adxl345@0 {
++		compatible = "adi,adxl345";
++		reg = <0x53>;
++
++		interrupt-parent = <&portc>;
++		interrupts = <3 2>;
++	};
++};
++
++&mmc0 {
++	vmmc-supply = <&regulator_3_3v>;
++	vqmmc-supply = <&regulator_3_3v>;
++	status = "okay";
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&usb1 {
++	status = "okay";
++};
+diff --git a/drivers/fpga/Makefile b/drivers/fpga/Makefile
+index 0e3e06dc..1c4ba4ba 100644
+--- a/drivers/fpga/Makefile
++++ b/drivers/fpga/Makefile
+@@ -4,7 +4,7 @@
+ 
+ # Core FPGA Manager Framework
+ fpga_mgr-objs				:= fpga-mgr.o fpga-mgr-debugfs.o
+-obj-$(CONFIG_FPGA)			+= fpga_mgr.o
++obj-$(CONFIG_FPGA)			+= fpga_mgr.o fpga-mgr-fops.o
+ 
+ # FPGA Manager Drivers
+ obj-$(CONFIG_FPGA_MGR_ICE40_SPI)	+= ice40-spi.o
+diff --git a/drivers/fpga/fpga-bridge.c b/drivers/fpga/fpga-bridge.c
+index 868adcb0..3dcba5e5 100644
+--- a/drivers/fpga/fpga-bridge.c
++++ b/drivers/fpga/fpga-bridge.c
+@@ -255,12 +255,51 @@ static ssize_t state_show(struct device *dev,
+ 	return scnprintf(buf, 10, "%s\n", enable ? "enabled" : "disabled");
+ }
+ 
++
++static ssize_t fpga_bridge_enable_show(struct device *dev,
++				       struct device_attribute *attr,
++				       char *buf)
++{
++	struct fpga_bridge *bridge = to_fpga_bridge(dev);
++	int enabled;
++
++	enabled = bridge->br_ops->enable_show(bridge);
++
++	return sprintf(buf, "%d\n", enabled);
++}
++
++static ssize_t fpga_bridge_enable_set(struct device *dev,
++				      struct device_attribute *attr,
++				      const char *buf, size_t count)
++{
++	struct fpga_bridge *bridge = to_fpga_bridge(dev);
++	bool enable;
++
++	if ((count != 1) && (count != 2))
++		return -EINVAL;
++
++	if ((count == 2) && (buf[1] != '\n'))
++		return -EINVAL;
++
++	if ((buf[0] != '0') && (buf[0] != '1'))
++		return -EINVAL;
++
++	enable = (buf[0] == '1');
++	bridge->br_ops->enable_set(bridge, enable);
++
++	return count;
++}
++
++static DEVICE_ATTR(enable, S_IRUGO | S_IWUSR, fpga_bridge_enable_show,
++	fpga_bridge_enable_set);
++
+ static DEVICE_ATTR_RO(name);
+ static DEVICE_ATTR_RO(state);
+ 
+ static struct attribute *fpga_bridge_attrs[] = {
+ 	&dev_attr_name.attr,
+ 	&dev_attr_state.attr,
++	&dev_attr_enable.attr,
+ 	NULL,
+ };
+ ATTRIBUTE_GROUPS(fpga_bridge);
+@@ -309,7 +348,8 @@ int fpga_bridge_register(struct device *dev, const char *name,
+ 	bridge->dev.id = id;
+ 	dev_set_drvdata(dev, bridge);
+ 
+-	ret = dev_set_name(&bridge->dev, "br%d", id);
++//	ret = dev_set_name(&bridge->dev, "br%d", id);
++	ret = dev_set_name(&bridge->dev, bridge->name);
+ 	if (ret)
+ 		goto error_device;
+ 
+@@ -364,7 +404,8 @@ static int __init fpga_bridge_dev_init(void)
+ {
+ 	spin_lock_init(&bridge_list_lock);
+ 
+-	fpga_bridge_class = class_create(THIS_MODULE, "fpga_bridge");
++	//fpga_bridge_class = class_create(THIS_MODULE, "fpga_bridge");
++	fpga_bridge_class = class_create(THIS_MODULE, "fpga-bridge");
+ 	if (IS_ERR(fpga_bridge_class))
+ 		return PTR_ERR(fpga_bridge_class);
+ 
+diff --git a/drivers/fpga/fpga-mgr-fops.c b/drivers/fpga/fpga-mgr-fops.c
+new file mode 100644
+index 00000000..eb57ceb4
+--- /dev/null
++++ b/drivers/fpga/fpga-mgr-fops.c
+@@ -0,0 +1,96 @@
++/*
++ * FPGA Framework file operations
++ *
++ *  Copyright (C) 2013 Altera Corporation
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation; either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++#include <linux/kernel.h>
++#include <linux/module.h>
++#include <linux/fs.h>
++#include <linux/slab.h>
++#include <linux/uaccess.h>
++#include <linux/vmalloc.h>
++#include <linux/fpga/fpga-mgr.h>
++
++struct fpga_image_info fops_info;
++
++static ssize_t fpga_mgr_write(struct file *file, const char __user *buf,
++		size_t count, loff_t *offset)
++{
++	struct fpga_manager *mgr = file->private_data;
++	char *kern_buf;
++	int len = count;
++
++	kern_buf = memdup_user(buf, count);
++	if (IS_ERR(kern_buf))
++		return PTR_ERR(kern_buf);
++
++	mgr->mops->write(mgr, kern_buf, count);
++	kfree(kern_buf);
++	return len;
++}
++
++static int fpga_mgr_open(struct inode *inode, struct file *file)
++{
++	struct fpga_manager *mgr;
++	struct fpga_manager_ops *mops;
++	bool fmode_wr = (file->f_mode & FMODE_WRITE) != 0;
++	int ret = 0;
++
++	mgr = container_of(inode->i_cdev, struct fpga_manager, cdev);
++
++
++	if (!mgr)
++		return -ENODEV;
++
++	mops = mgr->mops;
++
++	/* Don't allow read or write if we don't have read/write fns. */
++	if (fmode_wr && !mops->write)
++		return -EPERM;
++
++//	if (test_and_set_bit_lock(FPGA_MGR_DEV_BUSY, fops_info.flags))
++//		return -EBUSY;
++
++	file->private_data = mgr;
++
++	if (fmode_wr && mops->write_init)
++		ret = mops->write_init(mgr,&fops_info,NULL,0);
++	return ret;
++}
++
++static int fpga_mgr_release(struct inode *inode, struct file *file)
++{
++	struct fpga_manager *mgr = file->private_data;
++	struct fpga_manager_ops *mops = mgr->mops;
++	bool fmode_wr = (file->f_mode & FMODE_WRITE) != 0;
++	int ret = 0;
++
++	if (fmode_wr && mops->write_complete)
++		ret = mops->write_complete(mgr,NULL);
++
++	file->private_data = NULL;
++//	clear_bit_unlock(FPGA_MGR_DEV_BUSY, fops_info.flags);
++
++	return ret;
++}
++
++const struct file_operations socfpga_mgr_fops = {
++	.owner		= THIS_MODULE,
++	.llseek		= no_llseek,
++	.write		= fpga_mgr_write,
++	.open		= fpga_mgr_open,
++	.release	= fpga_mgr_release,
++};
+diff --git a/drivers/fpga/fpga-mgr.c b/drivers/fpga/fpga-mgr.c
+index 2f4df3a2..5aad0cef 100644
+--- a/drivers/fpga/fpga-mgr.c
++++ b/drivers/fpga/fpga-mgr.c
+@@ -28,9 +28,12 @@
+ #include <linux/scatterlist.h>
+ #include <linux/highmem.h>
+ #include "fpga-mgr-debugfs.h"
++#include <linux/cdev.h>
+ 
+ static DEFINE_IDA(fpga_mgr_ida);
+ static struct class *fpga_mgr_class;
++static int fpga_mgr_major;
++#define FPGA_MAX_MINORS	256
+ 
+ /*
+  * Call the low level driver's write_init function.  This will do the
+@@ -311,21 +314,29 @@ int fpga_mgr_firmware_load(struct fpga_manager *mgr,
+ EXPORT_SYMBOL_GPL(fpga_mgr_firmware_load);
+ 
+ static const char * const state_str[] = {
++/*
+ 	[FPGA_MGR_STATE_UNKNOWN] =		"unknown",
+ 	[FPGA_MGR_STATE_POWER_OFF] =		"power off",
+ 	[FPGA_MGR_STATE_POWER_UP] =		"power up",
+ 	[FPGA_MGR_STATE_RESET] =		"reset",
++*/
++	[FPGA_MGR_STATE_UNKNOWN] =		"undetermined",
++	[FPGA_MGR_STATE_POWER_OFF] =		"powered off",
++	[FPGA_MGR_STATE_POWER_UP] =		"power up phase",
++	[FPGA_MGR_STATE_RESET] =		"reset phase",
+ 
+ 	/* requesting FPGA image from firmware */
+ 	[FPGA_MGR_STATE_FIRMWARE_REQ] =		"firmware request",
+ 	[FPGA_MGR_STATE_FIRMWARE_REQ_ERR] =	"firmware request error",
+ 
+ 	/* Preparing FPGA to receive image */
+-	[FPGA_MGR_STATE_WRITE_INIT] =		"write init",
++	//[FPGA_MGR_STATE_WRITE_INIT] =		"write init",
++	[FPGA_MGR_STATE_WRITE_INIT] =		"initialization phase",
+ 	[FPGA_MGR_STATE_WRITE_INIT_ERR] =	"write init error",
+ 
+ 	/* Writing image to FPGA */
+-	[FPGA_MGR_STATE_WRITE] =		"write",
++	[FPGA_MGR_STATE_WRITE] =		"configuration phase",
++	//[FPGA_MGR_STATE_WRITE] =		"write",
+ 	[FPGA_MGR_STATE_WRITE_ERR] =		"write error",
+ 
+ 	/* Finishing configuration after image has been written */
+@@ -333,7 +344,8 @@ static const char * const state_str[] = {
+ 	[FPGA_MGR_STATE_WRITE_COMPLETE_ERR] =	"write complete error",
+ 
+ 	/* FPGA reports to be in normal operating mode */
+-	[FPGA_MGR_STATE_OPERATING] =		"operating",
++	//[FPGA_MGR_STATE_OPERATING] =		"operating",
++	[FPGA_MGR_STATE_OPERATING] =		"user mode",
+ };
+ 
+ static ssize_t name_show(struct device *dev,
+@@ -352,12 +364,40 @@ static ssize_t state_show(struct device *dev,
+ 	return sprintf(buf, "%s\n", state_str[mgr->state]);
+ }
+ 
++static ssize_t status_show(struct device *dev,
++			   struct device_attribute *attr, char *buf)
++{
++	struct fpga_manager *mgr = to_fpga_manager(dev);
++//	u64 status;
++//	int len = 0;
++
++//	if (!mgr->mops->status)
++//		return -ENOENT;
++
++//	status = mgr->mops->status(mgr);
++
++//	if (status & FPGA_MGR_STATUS_OPERATION_ERR)
++//		len += sprintf(buf + len, "reconfig operation error\n");
++//	if (status & FPGA_MGR_STATUS_CRC_ERR)
++//		len += sprintf(buf + len, "reconfig CRC error\n");
++//	if (status & FPGA_MGR_STATUS_INCOMPATIBLE_IMAGE_ERR)
++//		len += sprintf(buf + len, "reconfig incompatible image\n");
++//	if (status & FPGA_MGR_STATUS_IP_PROTOCOL_ERR)
++//		len += sprintf(buf + len, "reconfig IP protocol error\n");
++//	if (status & FPGA_MGR_STATUS_FIFO_OVERFLOW_ERR)
++//		len += sprintf(buf + len, "reconfig fifo overflow error\n");
++//	return len;		
++	return sprintf(buf, "%s\n", state_str[mgr->state]);
++}
++
+ static DEVICE_ATTR_RO(name);
+ static DEVICE_ATTR_RO(state);
++static DEVICE_ATTR_RO(status);
+ 
+ static struct attribute *fpga_mgr_attrs[] = {
+ 	&dev_attr_name.attr,
+ 	&dev_attr_state.attr,
++	&dev_attr_status.attr,
+ 	NULL,
+ };
+ ATTRIBUTE_GROUPS(fpga_mgr);
+@@ -503,7 +543,9 @@ int fpga_mgr_register(struct device *dev, const char *name,
+ 	mgr->state = mgr->mops->state(mgr);
+ 
+ 	device_initialize(&mgr->dev);
++	mgr->dev.devt = MKDEV(fpga_mgr_major, id);
+ 	mgr->dev.class = fpga_mgr_class;
++	mgr->dev.groups = mops->groups;
+ 	mgr->dev.parent = dev;
+ 	mgr->dev.of_node = dev->of_node;
+ 	mgr->dev.id = id;
+@@ -513,6 +555,14 @@ int fpga_mgr_register(struct device *dev, const char *name,
+ 	if (ret)
+ 		goto error_device;
+ 
++	cdev_init(&mgr->cdev, &socfpga_mgr_fops);
++
++	mgr->cdev.kobj.parent = &mgr->dev.kobj;
++
++	ret = cdev_add(&mgr->cdev, MKDEV(fpga_mgr_major,id), 1);
++	if (ret)
++		goto error_cdev;
++
+ 	ret = device_add(&mgr->dev);
+ 	if (ret)
+ 		goto error_device;
+@@ -525,6 +575,8 @@ int fpga_mgr_register(struct device *dev, const char *name,
+ 
+ error_device:
+ 	ida_simple_remove(&fpga_mgr_ida, id);
++error_cdev:
++    cdev_del(&mgr->cdev);
+ error_kfree:
+ 	kfree(mgr);
+ 
+@@ -565,14 +617,24 @@ static void fpga_mgr_dev_release(struct device *dev)
+ 
+ static int __init fpga_mgr_class_init(void)
+ {
++	int ret;
++	dev_t fpga_mgr_devno;
+ 	pr_info("FPGA manager framework\n");
+ 
+-	fpga_mgr_class = class_create(THIS_MODULE, "fpga_manager");
++	//fpga_mgr_class = class_create(THIS_MODULE, "fpga_manager");
++	fpga_mgr_class = class_create(THIS_MODULE, "fpga");
+ 	if (IS_ERR(fpga_mgr_class))
+ 		return PTR_ERR(fpga_mgr_class);
+ 
+ 	fpga_mgr_class->dev_groups = fpga_mgr_groups;
+ 	fpga_mgr_class->dev_release = fpga_mgr_dev_release;
++	ret = alloc_chrdev_region(&fpga_mgr_devno, 0, FPGA_MAX_MINORS, "fpga");
++	if (ret) {
++		class_destroy(fpga_mgr_class);
++		return ret;
++	}
++
++	fpga_mgr_major = MAJOR(fpga_mgr_devno);
+ 
+ 	fpga_mgr_debugfs_init();
+ 
+diff --git a/drivers/fpga/socfpga.c b/drivers/fpga/socfpga.c
+index b6672e66..35cafc96 100644
+--- a/drivers/fpga/socfpga.c
++++ b/drivers/fpga/socfpga.c
+@@ -414,10 +414,10 @@ static int socfpga_fpga_ops_configure_init(struct fpga_manager *mgr,
+ 	struct socfpga_fpga_priv *priv = mgr->priv;
+ 	int ret;
+ 
+-	if (info->flags & FPGA_MGR_PARTIAL_RECONFIG) {
+-		dev_err(&mgr->dev, "Partial reconfiguration not supported.\n");
+-		return -EINVAL;
+-	}
++//	if (info->flags & FPGA_MGR_PARTIAL_RECONFIG) {
++//		dev_err(&mgr->dev, "Partial reconfiguration not supported.\n");
++//		return -EINVAL;
++//	}
+ 	/* Steps 1 - 5: Reset the FPGA */
+ 	ret = socfpga_fpga_reset(mgr);
+ 	if (ret)
+@@ -519,6 +519,7 @@ static int socfpga_fpga_ops_configure_complete(struct fpga_manager *mgr,
+ }
+ 
+ /* Translate state register values to FPGA framework state */
++/*
+ static const enum fpga_mgr_states socfpga_state_to_framework_state[] = {
+ 	[SOCFPGA_FPGMGR_STAT_POWER_OFF] = FPGA_MGR_STATE_POWER_OFF,
+ 	[SOCFPGA_FPGMGR_STAT_RESET] = FPGA_MGR_STATE_RESET,
+@@ -527,6 +528,18 @@ static const enum fpga_mgr_states socfpga_state_to_framework_state[] = {
+ 	[SOCFPGA_FPGMGR_STAT_USER_MODE] = FPGA_MGR_STATE_OPERATING,
+ 	[SOCFPGA_FPGMGR_STAT_UNKNOWN] = FPGA_MGR_STATE_UNKNOWN,
+ };
++*/
++
++static const enum fpga_mgr_states socfpga_state_to_framework_state[] = {
++	[SOCFPGA_FPGMGR_STAT_POWER_UP] = FPGA_MGR_STATE_POWER_UP,
++	[SOCFPGA_FPGMGR_STAT_RESET] = FPGA_MGR_STATE_RESET,
++	[SOCFPGA_FPGMGR_STAT_CFG] = FPGA_MGR_STATE_WRITE,
++	[SOCFPGA_FPGMGR_STAT_INIT] = FPGA_MGR_STATE_WRITE_INIT,
++	[SOCFPGA_FPGMGR_STAT_USER_MODE] = FPGA_MGR_STATE_OPERATING,
++	[SOCFPGA_FPGMGR_STAT_UNKNOWN] = FPGA_MGR_STATE_UNKNOWN,
++	[SOCFPGA_FPGMGR_STAT_POWER_OFF] = FPGA_MGR_STATE_POWER_OFF,
++};
++
+ 
+ static enum fpga_mgr_states socfpga_fpga_ops_state(struct fpga_manager *mgr)
+ {
+@@ -544,8 +557,22 @@ static enum fpga_mgr_states socfpga_fpga_ops_state(struct fpga_manager *mgr)
+ 	return ret;
+ }
+ 
++
++static u64 socfpga_mgr_status(struct fpga_manager *mgr)
++{
++	struct socfpga_fpga_priv *priv = mgr->priv;
++	u32 state;
++
++	state = socfpga_fpga_state_get(priv);
++
++	socfpga_fpga_readl(priv, SOCFPGA_FPGMGR_GPIO_EXT_PORTA_OFST);	
++
++	return socfpga_fpga_readl(priv, SOCFPGA_FPGMGR_STAT_OFST);
++}
++
+ static const struct fpga_manager_ops socfpga_fpga_ops = {
+ 	.state = socfpga_fpga_ops_state,
++	.status = socfpga_mgr_status,
+ 	.write_init = socfpga_fpga_ops_configure_init,
+ 	.write = socfpga_fpga_ops_configure_write,
+ 	.write_complete = socfpga_fpga_ops_configure_complete,
+diff --git a/include/linux/fpga/fpga-mgr.h b/include/linux/fpga/fpga-mgr.h
+index 7954896b..3e296491 100644
+--- a/include/linux/fpga/fpga-mgr.h
++++ b/include/linux/fpga/fpga-mgr.h
+@@ -17,13 +17,16 @@
+  */
+ #include <linux/mutex.h>
+ #include <linux/platform_device.h>
++#include <linux/cdev.h>
+ 
+ #ifndef _LINUX_FPGA_MGR_H
+ #define _LINUX_FPGA_MGR_H
+ 
++#define FPGA_MGR_DEV_BUSY 0
++
+ struct fpga_manager;
+ struct sg_table;
+-
++extern const struct file_operations socfpga_mgr_fops;
+ /**
+  * enum fpga_mgr_states - fpga framework states
+  * @FPGA_MGR_STATE_UNKNOWN: can't determine state
+@@ -104,6 +107,7 @@ struct fpga_image_info {
+ struct fpga_manager_ops {
+ 	size_t initial_header_size;
+ 	enum fpga_mgr_states (*state)(struct fpga_manager *mgr);
++	u64 (*status)(struct fpga_manager *mgr, char *buf);
+ 	int (*write_init)(struct fpga_manager *mgr,
+ 			  struct fpga_image_info *info,
+ 			  const char *buf, size_t count);
+@@ -112,6 +116,7 @@ struct fpga_manager_ops {
+ 	int (*write_complete)(struct fpga_manager *mgr,
+ 			      struct fpga_image_info *info);
+ 	void (*fpga_remove)(struct fpga_manager *mgr);
++	const struct attribute_group **groups;
+ };
+ 
+ /**
+@@ -126,6 +131,7 @@ struct fpga_manager_ops {
+ struct fpga_manager {
+ 	const char *name;
+ 	struct device dev;
++	struct cdev cdev;
+ 	struct mutex ref_mutex;
+ 	enum fpga_mgr_states state;
+ 	const struct fpga_manager_ops *mops;

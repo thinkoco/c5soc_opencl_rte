@@ -1,18 +1,19 @@
 # c5soc_opencl runtime environment
-Intel FPGA Cyclone V SoC OpenCL runtime environment with some drivers on Linux 4.19.x  or newer
+Intel FPGA Cyclone V SoC OpenCL runtime environment with some drivers on Linux 4.9.x  or newer
 
 ## Works
 
 - change fpga bridges name for aclsoc driver
 - change fpga manager path for aclsoc driver
-- add /dev/fpga0 char driver and file operation
+- fixed status_show interface in fpga manager driver
+- add /dev/fpga0 char driver and file operations
 - fixed the interrupt number issue in aclsoc driver for new linux kernel
 - fixed the signal issue in aclsoc driver for new linux kernel
 - add c5soc_opencl device tree source
 
 ## Guides
 
-[here is some guides](documents/How_to_do.md)
+[here are some guides](documents/How_to_do.md)
 
 ## Logs
 
