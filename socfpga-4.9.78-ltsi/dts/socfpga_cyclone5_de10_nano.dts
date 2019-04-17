@@ -62,6 +62,15 @@
 				bits-per-color = < 8 >;				
 				}; //end vip@0x40100 (alt_vip_vfr_0)
 
+
+			board_irq_ctrl_0: unknown@0x10000cfa0 {
+				compatible = "altr,c5soc_opencl";
+				interrupt-parent = <&intc>;
+				interrupts = <0 40 4>;
+				interrupt-controller;
+				#interrupt-cells = <1>;
+				}; //end unknown@0x10000cfa0 (board_irq_ctrl_0)
+
 		}; //end bridge@0xc0000000 (hps_0_bridges)
 	};
 

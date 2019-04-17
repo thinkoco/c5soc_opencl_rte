@@ -1,7 +1,7 @@
 # How to do
 ## Get linux kernel
 
-	git clone --depth 20 --branch socfpga-4.9.78-ltsi https://github.com/thinkoco/linux-socfpga.git
+	git clone --depth 3 --branch socfpga-4.9.78-aocl https://github.com/thinkoco/linux-socfpga.git
 	
 	wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.19.29.tar.xz
 
@@ -46,7 +46,8 @@
 	export CROSS_COMPILE=arm-linux-gnueabihf-
 	export LOADADDR=0x8000
 	make c5socl_defconfig
-	make zImage
+	make zImage -j4
+	make modules
 	make socfpga_cyclone5_de10_nano.dtb
 
 ## Build opencl dirver
